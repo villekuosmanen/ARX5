@@ -211,27 +211,27 @@ void arx_arm::motor_control(ecat::EcatBase ecat_base)
 
     if(current_normal)
     {
-            if (is_teach_mode) {
-                // 拖动模式
+        // if (is_teach_mode) {
+            // 拖动模式
 
-                CAN_Handlej.Send_moto_Cmd1(ecat_base,1, 0, 0, 0, 0,  solve.joint_torque[0]);usleep(200);
-                CAN_Handlej.Send_moto_Cmd1(ecat_base,2, 0, 0, 0, 0,  solve.joint_torque[1]);usleep(200);
-                CAN_Handlej.Send_moto_Cmd1(ecat_base,4, 0, 0, 0, 0,  solve.joint_torque[2]);usleep(200);
-                CAN_Handlej.Send_moto_Cmd2(ecat_base,5, 0, 0, 0, 0,  solve.joint_torque[3]);usleep(200);
-                CAN_Handlej.Send_moto_Cmd2(ecat_base,6, 0, 0, 0, 0,  solve.joint_torque[4]);usleep(200);
-                CAN_Handlej.Send_moto_Cmd2(ecat_base,7, 0, 0, 0, 0,  solve.joint_torque[5]);usleep(200);
-                CAN_Handlej.Send_moto_Cmd2(ecat_base,8, 0, 0, 0, 0,  0);  usleep(200);
+            CAN_Handlej.Send_moto_Cmd1(ecat_base,1, 0, 0, 0, 0,  solve.joint_torque[0]);usleep(200);
+            CAN_Handlej.Send_moto_Cmd1(ecat_base,2, 0, 0, 0, 0,  solve.joint_torque[1]);usleep(200);
+            CAN_Handlej.Send_moto_Cmd1(ecat_base,4, 0, 0, 0, 0,  solve.joint_torque[2]);usleep(200);
+            CAN_Handlej.Send_moto_Cmd2(ecat_base,5, 0, 0, 0, 0,  solve.joint_torque[3]);usleep(200);
+            CAN_Handlej.Send_moto_Cmd2(ecat_base,6, 0, 0, 0, 0,  solve.joint_torque[4]);usleep(200);
+            CAN_Handlej.Send_moto_Cmd2(ecat_base,7, 0, 0, 0, 0,  solve.joint_torque[5]);usleep(200);
+            CAN_Handlej.Send_moto_Cmd2(ecat_base,8, 0, 0, 0, 0,  0);  usleep(200);
 
-            } else {
+        // } else {
 
-                        CAN_Handlej.Send_moto_Cmd1(ecat_base,1, 150, 12, target_pos[0], 0, solve.joint_torque[0]); usleep(200);
-                        CAN_Handlej.Send_moto_Cmd1(ecat_base,2, 150, 12, target_pos[1], 0, solve.joint_torque[1]); usleep(200);
-                        CAN_Handlej.Send_moto_Cmd1(ecat_base,4, 150, 12, target_pos[2], 0, solve.joint_torque[2]); usleep(200);
-                        CAN_Handlej.Send_moto_Cmd2(ecat_base,5, 30, 0.8, target_pos[3], 0, solve.joint_torque[3]); usleep(200);
-                        CAN_Handlej.Send_moto_Cmd2(ecat_base,6, 25, 0.8, target_pos[4], 0, solve.joint_torque[4]); usleep(200);
-                        CAN_Handlej.Send_moto_Cmd2(ecat_base,7, 10, 1  , target_pos[5], 0, solve.joint_torque[5]); usleep(200);
-                        CAN_Handlej.Send_moto_Cmd2(ecat_base,8, 0, 0 , 0, 0, 0); usleep(200);
-                }
+        //     CAN_Handlej.Send_moto_Cmd1(ecat_base,1, 150, 12, target_pos[0], 0, solve.joint_torque[0]); usleep(200);
+        //     CAN_Handlej.Send_moto_Cmd1(ecat_base,2, 150, 12, target_pos[1], 0, solve.joint_torque[1]); usleep(200);
+        //     CAN_Handlej.Send_moto_Cmd1(ecat_base,4, 150, 12, target_pos[2], 0, solve.joint_torque[2]); usleep(200);
+        //     CAN_Handlej.Send_moto_Cmd2(ecat_base,5, 30, 0.8, target_pos[3], 0, solve.joint_torque[3]); usleep(200);
+        //     CAN_Handlej.Send_moto_Cmd2(ecat_base,6, 25, 0.8, target_pos[4], 0, solve.joint_torque[4]); usleep(200);
+        //     CAN_Handlej.Send_moto_Cmd2(ecat_base,7, 10, 1  , target_pos[5], 0, solve.joint_torque[5]); usleep(200);
+        //     CAN_Handlej.Send_moto_Cmd2(ecat_base,8, 0, 0 , 0, 0, 0); usleep(200);
+        // }
 
     }else
     {               

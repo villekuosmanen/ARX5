@@ -217,16 +217,26 @@ void arx_arm::motor_control(ecat::EcatBase ecat_base)
 
     target_pos_temp[6]=limit<float>(target_pos_temp[6],0,4.5);
 
+
+    for (size_t i=0; i < 7; ++i)
+    {
+        std::cout << "Joint " << i << ", Position= " << current_pos[i] << ", Target= " << target_pos_temp[i] << ", Torque = " << ros_control_cur[i] << "\n";
+    }
+
     motor_control_cmd=true;
 
-    if(current_normal)
+    if(is_starting)
     {
-            CAN_Handlej.Send_moto_Cmd1 (ecat_base,1, 150, 12, target_pos_temp[0], 0, solve.joint_torque[0]);
-            CAN_Handlej.Send_moto_Cmd1 (ecat_base,2, 150, 12, target_pos_temp[1], 0, solve.joint_torque[1]);usleep(200);
-            CAN_Handlej.Send_moto_Cmd1 (ecat_base,4, 150, 12, target_pos_temp[2], 0, solve.joint_torque[2]);usleep(200);
-            CAN_Handlej.Send_moto_Cmd2 (ecat_base,5, 20, 0.8, target_pos_temp[3], 0, solve.joint_torque[3]);usleep(200);
-            CAN_Handlej.Send_moto_Cmd2 (ecat_base,6, 20, 0.8, target_pos_temp[4], 0, solve.joint_torque[4]);usleep(200);
-            CAN_Handlej.Send_moto_Cmd2 (ecat_base,7, 20, 1  , target_pos_temp[5], 0, solve.joint_torque[5]);usleep(200); 
+        init_step(ecat_base);
+    }
+    else if(current_normal)
+    {
+            CAN_Handlej.Send_moto_Cmd1 (ecat_base,1, 150, 12, target_pos_temp[0], 0, 0);
+            CAN_Handlej.Send_moto_Cmd1 (ecat_base,2, 150, 12, target_pos_temp[1], 0, 0);usleep(200);
+            CAN_Handlej.Send_moto_Cmd1 (ecat_base,4, 150, 12, target_pos_temp[2], 0, 0);usleep(200);
+            CAN_Handlej.Send_moto_Cmd2 (ecat_base,5, 20, 0.8, target_pos_temp[3], 0, 0);usleep(200);
+            CAN_Handlej.Send_moto_Cmd2 (ecat_base,6, 20, 0.8, target_pos_temp[4], 0, 0);usleep(200);
+            CAN_Handlej.Send_moto_Cmd2 (ecat_base,7, 20, 1  , target_pos_temp[5], 0, 0);usleep(200); 
 
             float temp_k=8.0f;  //2.0f  3
             float send_cur=0;

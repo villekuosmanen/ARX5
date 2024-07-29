@@ -27,8 +27,7 @@
  
 char phy[] = "enx5c5310ecc0ec"; 
 
-int CONTROL_MODE=0; 
-command cmd;
+int CONTROL_MODE=0;
 
 bool arx_flag2 = false;
 void sigint_handler(int sig);
@@ -47,8 +46,7 @@ int main(int argc, char **argv)
 
     // this was changed to match the Cobot Magic publishers
     ros::Publisher pub_current = node.advertise<sensor_msgs::JointState>("/master/joint_left", 10);
-    ros::Publisher pub_pos = node.advertise<geometry_msgs::PoseStamped>("/master/end_left", 10);
-    arx5_keyboard ARX_KEYBOARD;
+    // ros::Publisher pub_pos = node.advertise<geometry_msgs::PoseStamped>("/master/end_left", 10);
 
     // TODO: unclear what this subscriber does and what it is needed for
     // ros::Subscriber sub_information = node.subscribe<arm_control::JointInformation>("/joint_information2", 10, 
@@ -64,19 +62,19 @@ int main(int argc, char **argv)
     //                               });
 
     ros::Rate loop_rate(200);
-    std::thread keyThread(&arx5_keyboard::detectKeyPress, &ARX_KEYBOARD);
     sleep(1);
     Ethercat.EcatStart(phy);
-    CAN_Handlej.Send_moto_Cmd1(Ethercat, 1, 0, 0, 0, 0, 0);
-    CAN_Handlej.Send_moto_Cmd1(Ethercat, 2, 0, 0, 0, 0, 0);
-    CAN_Handlej.Send_moto_Cmd1(Ethercat, 4, 0, 0, 0, 0, 0);
+    // CAN_Handlej.Send_moto_Cmd1(Ethercat, 1, 0, 0, 0, 0, 0);
+    // CAN_Handlej.Send_moto_Cmd1(Ethercat, 2, 0, 0, 0, 0, 0);
+    // CAN_Handlej.Send_moto_Cmd1(Ethercat, 4, 0, 0, 0, 0, 0);
+    CAN_Handlej.Enable_Moto(Ethercat,1);
+    CAN_Handlej.Enable_Moto(Ethercat,2);
+    // CAN_Handlej.Enable_Moto(Ethercat,3);
+    CAN_Handlej.Enable_Moto(Ethercat,4);
     CAN_Handlej.Enable_Moto(Ethercat,5);
     CAN_Handlej.Enable_Moto(Ethercat,6);
     CAN_Handlej.Enable_Moto(Ethercat,7);
     CAN_Handlej.Enable_Moto(Ethercat,8);
-    CAN_Handlej.Send_moto_Cmd1(Ethercat, 1, 0, 0, 0, 0, 0);
-    CAN_Handlej.Send_moto_Cmd1(Ethercat, 2, 0, 0, 0, 0, 0);
-    CAN_Handlej.Send_moto_Cmd1(Ethercat, 4, 0, 0, 0, 0, 0);
     Ethercat.EcatSyncMsg(); CAN_Handlej.can0_ReceiveFrame(Ethercat); 
     while(ros::ok())
     {
@@ -84,14 +82,12 @@ int main(int argc, char **argv)
         Ethercat.packet_tx[0].LED = 1;
         Ethercat.EcatSyncMsg();
 
-        char key = ARX_KEYBOARD.keyPress.load();
-        ARX_ARM.getKey(key);
-
         ARX_ARM.get_curr_pos();
-        if(!ARX_ARM.is_starting){
-             cmd = ARX_ARM.get_cmd();
-        }
-        ARX_ARM.update_real(Ethercat,cmd);
+        ARX_ARM.motor_control(Ethercat);
+        // if(!ARX_ARM.is_starting){
+        //      cmd = ARX_ARM.get_cmd();
+        // }
+        // ARX_ARM.update_real(Ethercat,cmd);
         
         // This was changed to match the Cobot Magic JointState publish code
         sensor_msgs::JointState msg_joint;
@@ -109,22 +105,26 @@ int main(int argc, char **argv)
             msg_joint.position[i] = ARX_ARM.current_pos[i];
             msg_joint.velocity[i] = ARX_ARM.current_vel[i];
             msg_joint.effort[i] = ARX_ARM.current_torque[i];
-            if (i == 6) msg_joint.position[i] *=12;    // 映射放大 // No idea why this is needed (differs from L5) but we'll keep it
+            if (i == 6) msg_joint.position[i] *=5;    // 映射放大 // No idea why this is needed (differs from L5) but we'll keep it
+            std::cout << "Joint " << i << ", Position = " << msg_joint.position[i]
+                        << ", Velocity = " << msg_joint.velocity[i]
+                        << ", Effort = " << msg_joint.effort[i] << std::endl;
         }
         pub_current.publish(msg_joint);
+        
 
 
         // This was edited to match the Cobot Magic version
-        geometry_msgs::PoseStamped msg_pos_back;
-        msg_pos_back.header.stamp = msg_joint.header.stamp
-        msg_pos_back.pose.position.x      =ARX_ARM.fk_end_pos[0];
-        msg_pos_back.pose.position.y      =ARX_ARM.fk_end_pos[1];
-        msg_pos_back.pose.position.z      =ARX_ARM.fk_end_pos[2];
-        msg_pos_back.pose.orientation.x   =ARX_ARM.fk_end_pos[3];
-        msg_pos_back.pose.orientation.y   =ARX_ARM.fk_end_pos[4];
-        msg_pos_back.pose.orientation.z   =ARX_ARM.fk_end_pos[5];
-        msg_pos_back.pose.orientation.w   =ARX_ARM.current_pos[6];  // TODO: does it need to times 12 or 5?
-        pub_pos.publish(msg_pos_back);
+        // geometry_msgs::PoseStamped msg_pos_back;
+        // msg_pos_back.header.stamp = msg_joint.header.stamp
+        // msg_pos_back.pose.position.x      =ARX_ARM.fk_end_pos[0];
+        // msg_pos_back.pose.position.y      =ARX_ARM.fk_end_pos[1];
+        // msg_pos_back.pose.position.z      =ARX_ARM.fk_end_pos[2];
+        // msg_pos_back.pose.orientation.x   =ARX_ARM.fk_end_pos[3];
+        // msg_pos_back.pose.orientation.y   =ARX_ARM.fk_end_pos[4];
+        // msg_pos_back.pose.orientation.z   =ARX_ARM.fk_end_pos[5];
+        // msg_pos_back.pose.orientation.w   =ARX_ARM.current_pos[6];  // TODO: does it need to times 12 or 5?
+        // pub_pos.publish(msg_pos_back);
 
         ros::spinOnce();
         loop_rate.sleep();
