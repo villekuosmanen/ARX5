@@ -25,7 +25,7 @@
 #include <sensor_msgs/JointState.h>
 #include "geometry_msgs/PoseStamped.h"
  
-char phy[] = "enx00e04c36134f"; 
+char phy[] = "enx5c5310ecc0ec"; 
 
 int CONTROL_MODE=0; 
 command cmd;

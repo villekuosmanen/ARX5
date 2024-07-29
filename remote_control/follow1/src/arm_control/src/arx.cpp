@@ -24,7 +24,7 @@
 #include "arm_control/JointInformation.h"
 #include "arm_control/PosCmd.h"
 
-char phy[] = "enx00e04c36117b";
+char phy[] = "enx5c5310ecc90b";
 int CONTROL_MODE=0; 
 command cmd;
 
