@@ -20,9 +20,9 @@
 #include "App/arx_s.h"
 #include "Ecat/ecat_base.hpp"
 #include "Ecat/ecat_typedef.hpp"
-#include "arm_control/JointControl.h"
-#include "arm_control/JointInformation.h"
-#include "arm_control/PosCmd.h"
+
+#include <sensor_msgs/JointState.h>
+#include "geometry_msgs/PoseStamped.h"
 
 char phy[] = "enx00e04c3611ee";
 int CONTROL_MODE=0;
@@ -45,22 +45,31 @@ int main(int argc, char **argv)
 
     arx_arm ARX_ARM((int) CONTROL_MODE);
 
-    ros::Publisher pub_current = node.advertise<arm_control::JointInformation>("joint_information2", 10);
+    // The following are edited based on Cobot Magic code
     ros::Subscriber sub_joint = node.subscribe<sensor_msgs::JointState>("/master/joint_left", 10, 
-                                  [&ARX_ARM](const sensor_msgs::JointState::ConstPtr& msg) 
-                                  {
-                               
-                                      ARX_ARM.ros_control_pos_t[0] = msg->position[0];
-                                      ARX_ARM.ros_control_pos_t[1] = msg->position[1];
-                                      ARX_ARM.ros_control_pos_t[2] = msg->position[2];
-                                      ARX_ARM.ros_control_pos_t[3] = msg->position[3];
-                                      ARX_ARM.ros_control_pos_t[4] = msg->position[4];
-                                      ARX_ARM.ros_control_pos_t[5] = msg->position[5];
-                                      ARX_ARM.ros_control_pos_t[6] = msg->position[6];
+                                [&ARX_ARM](const sensor_msgs::JointState::ConstPtr& msg) {
+                                    ARX_ARM.ros_control_pos_t[0] = msg->position[0];
+                                    ARX_ARM.ros_control_pos_t[1] = msg->position[1];
+                                    ARX_ARM.ros_control_pos_t[2] = msg->position[2];
+                                    ARX_ARM.ros_control_pos_t[3] = msg->position[3];
+                                    ARX_ARM.ros_control_pos_t[4] = msg->position[4];
+                                    ARX_ARM.ros_control_pos_t[5] = msg->position[5];
+                                    ARX_ARM.ros_control_pos_t[6] = msg->position[6];
+                                });
+    ros::Subscriber sub_pos = node.subscribe<geometry_msgs::PoseStamped>("/master/end_left", 10, 
+                                [&ARX_ARM](const geometry_msgs::PoseStamped::ConstPtr& msg) {
+                                        ARX_ARM.arx5_cmd.x            = msg->pose.position.x;
+                                        ARX_ARM.arx5_cmd.y            = msg->pose.position.y;
+                                        ARX_ARM.arx5_cmd.z            = msg->pose.position.z;
+                                        ARX_ARM.arx5_cmd.waist_roll   = msg->pose.orientation.x;
+                                        ARX_ARM.arx5_cmd.waist_pitch  = msg->pose.orientation.y;
+                                        ARX_ARM.arx5_cmd.waist_yaw    = msg->pose.orientation.z;
+                                        ARX_ARM.arx5_cmd.gripper      = msg->pose.orientation.w;
+                                });
+    ros::Publisher pub_current = node.advertise<sensor_msgs::JointState>("/puppet/joint_left", 10);
+    ros::Publisher pub_pos = node.advertise<geometry_msgs::PoseStamped>("/puppet/end_left", 10);
 
-                                  });
-    
-     ros::Publisher pub_joint01 = node.advertise<sensor_msgs::JointState>("/puppet/joint_left", 10);
+
 
     arx5_keyboard ARX_KEYBOARD;
 
@@ -98,23 +107,34 @@ int main(int argc, char **argv)
 
 //发送关节数据
 
-        sensor_msgs::JointState msg_joint01;
-        msg_joint01.header.stamp = ros::Time::now();
-        // msg_joint01.header.frame_id = "map";
+        sensor_msgs::JointState msg_joint;
+        msg_joint.header.stamp = ros::Time::now();
         size_t num_joint = 7;
-        msg_joint01.name.resize(num_joint);
-        msg_joint01.velocity.resize(num_joint);
-        msg_joint01.position.resize(num_joint);
-        msg_joint01.effort.resize(num_joint);
+        msg_joint.name.resize(num_joint);
+        msg_joint.velocity.resize(num_joint);
+        msg_joint.position.resize(num_joint);
+        msg_joint.effort.resize(num_joint);
         
         for (size_t i=0; i < 7; ++i)
         {   
-            msg_joint01.name[i] = "joint" + std::to_string(i);
-            msg_joint01.position[i] = ARX_ARM.current_pos[i];
-            msg_joint01.velocity[i] = ARX_ARM.current_vel[i];
-            msg_joint01.effort[i] = ARX_ARM.current_torque[i];
+            msg_joint.name[i] = "joint" + std::to_string(i);
+            msg_joint.position[i] = ARX_ARM.current_pos[i];
+            msg_joint.velocity[i] = ARX_ARM.current_vel[i];
+            msg_joint.effort[i] = ARX_ARM.current_torque[i];
         }
-        pub_joint01.publish(msg_joint01);    
+        pub_current.publish(msg_joint);
+
+        geometry_msgs::PoseStamped msg_pos_back;
+        msg_pos_back.header.stamp = msg_joint.header.stamp;
+        msg_pos_back.pose.position.x      =ARX_ARM.fk_end_pos[0];
+        msg_pos_back.pose.position.y      =ARX_ARM.fk_end_pos[1];
+        msg_pos_back.pose.position.z      =ARX_ARM.fk_end_pos[2];
+        msg_pos_back.pose.orientation.x   =ARX_ARM.fk_end_pos[3];
+        msg_pos_back.pose.orientation.y   =ARX_ARM.fk_end_pos[4];
+        msg_pos_back.pose.orientation.z   =ARX_ARM.fk_end_pos[5];
+        msg_pos_back.pose.orientation.w   =ARX_ARM.current_pos[6];   // TODO: does it need to times 12 or 5?
+        pub_pos.publish(msg_pos_back);
+
 
         ros::spinOnce();
         loop_rate.sleep();

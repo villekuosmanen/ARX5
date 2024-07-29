@@ -20,9 +20,10 @@
 #include "App/arx_s.h"
 #include "Ecat/ecat_base.hpp"
 #include "Ecat/ecat_typedef.hpp"
-#include "arm_control/JointControl.h"
-#include "arm_control/JointInformation.h"
-#include "arm_control/PosCmd.h"
+// #include "arm_control/JointInformation.h"
+
+#include <sensor_msgs/JointState.h>
+#include "geometry_msgs/PoseStamped.h"
  
 char phy[] = "enx00e04c36134f"; 
 
@@ -44,22 +45,23 @@ int main(int argc, char **argv)
 
     arx_arm ARX_ARM((int) CONTROL_MODE);
 
-    ros::Publisher pub_joint01 = node.advertise<sensor_msgs::JointState>("/master/joint_left", 10);
-
-    ros::Subscriber sub_information = node.subscribe<arm_control::JointInformation>("/joint_information2", 10, 
-                                  [&ARX_ARM](const arm_control::JointInformation::ConstPtr& msg) {
-                                      ARX_ARM.ros_control_cur_t[0] = msg->joint_cur[0];
-                                      ARX_ARM.ros_control_cur_t[1] = msg->joint_cur[1];
-                                      ARX_ARM.ros_control_cur_t[2] = msg->joint_cur[2];
-                                      ARX_ARM.ros_control_cur_t[3] = msg->joint_cur[3];
-                                      ARX_ARM.ros_control_cur_t[4] = msg->joint_cur[4];
-                                      ARX_ARM.ros_control_cur_t[5] = msg->joint_cur[5];
-                                      ARX_ARM.ros_control_cur_t[6] = msg->joint_cur[6];
-                                      ARX_ARM.ros_control_pos_t[6] = msg->joint_pos[6];
-                                  });
-    ros::Publisher pub_pos = node.advertise<arm_control::PosCmd>("/master2_pos_back", 10);
-    
+    // this was changed to match the Cobot Magic publishers
+    ros::Publisher pub_current = node.advertise<sensor_msgs::JointState>("/master/joint_left", 10);
+    ros::Publisher pub_pos = node.advertise<geometry_msgs::PoseStamped>("/master/end_left", 10);
     arx5_keyboard ARX_KEYBOARD;
+
+    // TODO: unclear what this subscriber does and what it is needed for
+    // ros::Subscriber sub_information = node.subscribe<arm_control::JointInformation>("/joint_information2", 10, 
+    //                               [&ARX_ARM](const arm_control::JointInformation::ConstPtr& msg) {
+    //                                   ARX_ARM.ros_control_cur_t[0] = msg->joint_cur[0];
+    //                                   ARX_ARM.ros_control_cur_t[1] = msg->joint_cur[1];
+    //                                   ARX_ARM.ros_control_cur_t[2] = msg->joint_cur[2];
+    //                                   ARX_ARM.ros_control_cur_t[3] = msg->joint_cur[3];
+    //                                   ARX_ARM.ros_control_cur_t[4] = msg->joint_cur[4];
+    //                                   ARX_ARM.ros_control_cur_t[5] = msg->joint_cur[5];
+    //                                   ARX_ARM.ros_control_cur_t[6] = msg->joint_cur[6];
+    //                                   ARX_ARM.ros_control_pos_t[6] = msg->joint_pos[6];
+    //                               });
 
     ros::Rate loop_rate(200);
     std::thread keyThread(&arx5_keyboard::detectKeyPress, &ARX_KEYBOARD);
@@ -77,7 +79,7 @@ int main(int argc, char **argv)
     CAN_Handlej.Send_moto_Cmd1(Ethercat, 4, 0, 0, 0, 0, 0);
     Ethercat.EcatSyncMsg(); CAN_Handlej.can0_ReceiveFrame(Ethercat); 
     while(ros::ok())
-    { 
+    {
         Ethercat.packet_tx[0].LED = 1;
         Ethercat.packet_tx[0].LED = 1;
         Ethercat.EcatSyncMsg();
@@ -90,42 +92,44 @@ int main(int argc, char **argv)
              cmd = ARX_ARM.get_cmd();
         }
         ARX_ARM.update_real(Ethercat,cmd);
-    
-//topic
-
-        arm_control::PosCmd msg_pos_back;            
-        msg_pos_back.x      =ARX_ARM.solve.solve_pos[0];
-        msg_pos_back.y      =ARX_ARM.solve.solve_pos[1];
-        msg_pos_back.z      =ARX_ARM.solve.solve_pos[2];
-        msg_pos_back.roll   =ARX_ARM.solve.solve_pos[3];
-        msg_pos_back.pitch  =ARX_ARM.solve.solve_pos[4];
-        msg_pos_back.yaw    =ARX_ARM.solve.solve_pos[5];
-        msg_pos_back.gripper=ARX_ARM.current_pos[6];
-
-        pub_pos.publish(msg_pos_back);
         
-            // 发布sensor_msgs::JointState
-            sensor_msgs::JointState msg_joint01;
-            msg_joint01.header.stamp = ros::Time::now();
-            // msg_joint01.header.frame_id = "map";
-            size_t num_joint = 7;
-            msg_joint01.name.resize(num_joint);
-            msg_joint01.velocity.resize(num_joint);
-            msg_joint01.position.resize(num_joint);
-            msg_joint01.effort.resize(num_joint);
-            for (size_t i=0; i < 7; ++i)
-            {   
-                msg_joint01.name[i] = "joint" + std::to_string(i);
-                msg_joint01.position[i] = ARX_ARM.current_pos[i];
-                msg_joint01.velocity[i] = ARX_ARM.current_vel[i];
-                msg_joint01.effort[i] = ARX_ARM.current_torque[i];
-                if (i == 6) msg_joint01.position[i] *=12;    // 映射放大
-            }
-            pub_joint01.publish(msg_joint01);
+        // This was changed to match the Cobot Magic JointState publish code
+        sensor_msgs::JointState msg_joint;
+        msg_joint.header.stamp = ros::Time::now();
+        // msg_joint.header.frame_id = "map";
+        size_t num_joint = 7;
+        msg_joint.name.resize(num_joint);
+        msg_joint.velocity.resize(num_joint);
+        msg_joint.position.resize(num_joint);
+        msg_joint.effort.resize(num_joint);
+
+        for (size_t i=0; i < 7; ++i)
+        {   
+            msg_joint.name[i] = "joint" + std::to_string(i);
+            msg_joint.position[i] = ARX_ARM.current_pos[i];
+            msg_joint.velocity[i] = ARX_ARM.current_vel[i];
+            msg_joint.effort[i] = ARX_ARM.current_torque[i];
+            if (i == 6) msg_joint.position[i] *=12;    // 映射放大 // No idea why this is needed (differs from L5) but we'll keep it
+        }
+        pub_current.publish(msg_joint);
+
+
+        // This was edited to match the Cobot Magic version
+        geometry_msgs::PoseStamped msg_pos_back;
+        msg_pos_back.header.stamp = msg_joint.header.stamp
+        msg_pos_back.pose.position.x      =ARX_ARM.fk_end_pos[0];
+        msg_pos_back.pose.position.y      =ARX_ARM.fk_end_pos[1];
+        msg_pos_back.pose.position.z      =ARX_ARM.fk_end_pos[2];
+        msg_pos_back.pose.orientation.x   =ARX_ARM.fk_end_pos[3];
+        msg_pos_back.pose.orientation.y   =ARX_ARM.fk_end_pos[4];
+        msg_pos_back.pose.orientation.z   =ARX_ARM.fk_end_pos[5];
+        msg_pos_back.pose.orientation.w   =ARX_ARM.current_pos[6];  // TODO: does it need to times 12 or 5?
+        pub_pos.publish(msg_pos_back);
 
         ros::spinOnce();
         loop_rate.sleep();
-        arx_v();
+
+        arx_v();    // TODO: is this needed?
 
         if (arx_flag2)
         {

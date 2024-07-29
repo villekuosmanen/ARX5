@@ -16,3 +16,5 @@ remote_control/master2/.catkin_workspace
 arx_5/build/
 arx_5/devel/
 arx_5/.catkin_workspace
+
+.vscode
